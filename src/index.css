@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Inter', system-ui, sans-serif; }
+  #root { min-height: 100vh; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #18181b; }
+  ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-500 hover:bg-brand-600 active:bg-brand-700
+           text-white font-semibold px-5 py-2.5 rounded-xl
+           transition-all duration-200 disabled:opacity-50
+           disabled:cursor-not-allowed focus:outline-none
+           focus:ring-2 focus:ring-brand-500 focus:ring-offset-2
+           focus:ring-offset-zinc-900;
+  }
+  .btn-secondary {
+    @apply bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600
+           text-zinc-100 font-semibold px-5 py-2.5 rounded-xl
+           transition-all duration-200 border border-zinc-700
+           focus:outline-none focus:ring-2 focus:ring-zinc-500;
+  }
+  .btn-ghost {
+    @apply text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800
+           px-3 py-2 rounded-lg transition-all duration-200;
+  }
+  .input {
+    @apply w-full bg-zinc-800 border border-zinc-700 text-zinc-100
+           rounded-xl px-4 py-2.5 placeholder-zinc-500
+           focus:outline-none focus:ring-2 focus:ring-brand-500
+           focus:border-transparent transition-all duration-200;
+  }
+  .card {
+    @apply bg-zinc-900 border border-zinc-800 rounded-2xl;
+  }
+  .badge {
+    @apply text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+}

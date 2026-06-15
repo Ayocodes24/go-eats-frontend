@@ -6,30 +6,31 @@ import { PageSpinner } from '../components/Spinner'
 import { useToast } from '../context/ToastContext'
 
 export default function Cart() {
-  const { toast }   = useToast()
-  const navigate    = useNavigate()
+  const { toast }  = useToast()
+  const navigate   = useNavigate()
 
-  const [cart,     setCart]     = useState(null)
-  const [loading,  setLoading]  = useState(true)
-  const [placing,  setPlacing]  = useState(false)
-  const [address,  setAddress]  = useState('')
+  const [items,   setItems]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [placing, setPlacing] = useState(false)
+  const [address, setAddress] = useState('')
 
   const fetchCart = () => {
     setLoading(true)
     getCart()
-      .then((r) => setCart(r.data))
+      .then((r) => {
+        // Response: { items: [{cart_item_id, item_id, quantity, menu_item: {name, price, ...}}] }
+        setItems(r.data?.items ?? [])
+      })
       .catch(() => toast.error('Could not load cart.'))
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { fetchCart() }, [])
 
-  const handleRemove = async (menuItemId) => {
-    if (!cart?.cart_id && !cart?.id) return
-    const cId = cart.cart_id ?? cart.id
+  const handleRemove = async (cartItemId) => {
     try {
-      await removeFromCart(cId, menuItemId)
-      fetchCart()
+      await removeFromCart(cartItemId)
+      setItems((prev) => prev.filter((i) => i.cart_item_id !== cartItemId))
     } catch {
       toast.error('Failed to remove item.')
     }
@@ -37,14 +38,12 @@ export default function Cart() {
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) { toast.error('Please enter a delivery address.'); return }
-    const cId = cart?.cart_id ?? cart?.id
-    if (!cId) return
     setPlacing(true)
     try {
-      const res = await placeOrder(cId, address.trim())
-      const orderId = res.data?.order_id ?? res.data?.order?.id
+      // Backend only needs { delivery_address } — gets cart from JWT user
+      await placeOrder(address.trim())
       toast.success('Order placed successfully!')
-      navigate(orderId ? `/orders/${orderId}` : '/orders')
+      navigate('/orders')
     } catch (err) {
       toast.error(err.response?.data?.error ?? 'Failed to place order.')
     } finally {
@@ -54,8 +53,11 @@ export default function Cart() {
 
   if (loading) return <PageSpinner />
 
-  const items   = cart?.items ?? []
-  const total   = items.reduce((sum, i) => sum + (i.price ?? 0) * (i.quantity ?? 1), 0)
+  // Each item: { cart_item_id, item_id, quantity, menu_item: { name, price, ... } }
+  const total = items.reduce((sum, i) => {
+    const price = i.menu_item?.price ?? 0
+    return sum + price * Number(i.quantity)
+  }, 0)
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -64,60 +66,67 @@ export default function Cart() {
       </h1>
 
       {items.length === 0 ? (
-        <div className="card p-12 text-center space-y-4">
-          <span className="text-5xl">🛒</span>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center space-y-4">
+          <span className="text-5xl block">🛒</span>
           <p className="text-zinc-400">Your cart is empty.</p>
-          <Link to="/" className="btn-primary inline-block px-6 py-2.5">Browse restaurants</Link>
+          <Link to="/" className="inline-block px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+            Browse restaurants
+          </Link>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Item list */}
-          <div className="card divide-y divide-zinc-800">
-            {items.map((item) => (
-              <div key={item.menu_item_id ?? item.item_id ?? item.id} className="flex items-center gap-4 p-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-zinc-100 text-sm">{item.name}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">
-                    ₹{Number(item.price ?? 0).toFixed(2)} × {item.quantity}
-                  </p>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl divide-y divide-zinc-800">
+            {items.map((item) => {
+              const name  = item.menu_item?.name  ?? `Item #${item.item_id}`
+              const price = item.menu_item?.price ?? 0
+              return (
+                <div key={item.cart_item_id} className="flex items-center gap-4 p-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-zinc-100 text-sm">{name}</p>
+                    <p className="text-xs text-zinc-500 mt-0.5">
+                      ₹{Number(price).toFixed(2)} × {item.quantity}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-zinc-200">
+                    ₹{(Number(price) * Number(item.quantity)).toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => handleRemove(item.cart_item_id)}
+                    className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
-                <span className="text-sm font-semibold text-zinc-200">
-                  ₹{(Number(item.price ?? 0) * (item.quantity ?? 1)).toFixed(2)}
-                </span>
-                <button
-                  onClick={() => handleRemove(item.menu_item_id ?? item.item_id ?? item.id)}
-                  className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
-          {/* Order summary + checkout */}
-          <div className="card p-6 space-y-5">
-            <div className="flex justify-between text-lg font-bold text-zinc-100 border-t border-zinc-800 pt-4">
+          {/* Checkout */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
+            <div className="flex justify-between items-center text-lg font-bold text-zinc-100 border-t border-zinc-800 pt-4 first:border-t-0 first:pt-0">
               <span>Total</span>
               <span className="text-brand-400">₹{total.toFixed(2)}</span>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-zinc-300 flex items-center gap-1.5">
-                <MapPin size={14} className="text-brand-400" /> Delivery address
+                <MapPin size={14} className="text-brand-400" />
+                Delivery address
               </label>
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="123 Main St, City, State"
-                className="input w-full"
+                className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all"
               />
             </div>
 
             <button
               onClick={handlePlaceOrder}
               disabled={placing || !address.trim()}
-              className="btn-primary w-full py-3.5 flex items-center justify-center gap-2 disabled:opacity-60 text-base font-semibold"
+              className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-base"
             >
               {placing ? (
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

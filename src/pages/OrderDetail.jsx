@@ -5,9 +5,8 @@ import { getOrders, getOrderItems, getOrderDeliveries } from '../api/index'
 import { PageSpinner } from '../components/Spinner'
 import { useToast } from '../context/ToastContext'
 
-const statusSteps = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered']
-
-const statusColors = {
+const STATUS_STEPS = ['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered']
+const STATUS_COLORS = {
   pending:           'text-yellow-400',
   confirmed:         'text-blue-400',
   preparing:         'text-purple-400',
@@ -29,14 +28,21 @@ export default function OrderDetail() {
     Promise.all([
       getOrders(),
       getOrderItems(id),
-      getOrderDeliveries(id).catch(() => ({ data: [] })),
+      getOrderDeliveries(id).catch(() => ({ data: {} })),
     ])
       .then(([oRes, iRes, dRes]) => {
-        const allOrders = oRes.data?.orders ?? oRes.data ?? []
-        const found     = allOrders.find((o) => String(o.id ?? o.order_id) === String(id))
+        // Find this order from the list
+        const allOrders = oRes.data?.orders ?? []
+        const found     = allOrders.find(
+          (o) => String(o.order_id ?? o.id) === String(id)
+        )
         setOrder(found ?? null)
-        setItems(iRes.data?.items ?? iRes.data ?? [])
-        setDeliveries(dRes.data?.deliveries ?? dRes.data ?? [])
+
+        // getOrderItems returns { orders: [...] }  (backend reuses "orders" key for items)
+        setItems(iRes.data?.orders ?? [])
+
+        // getOrderDeliveries returns { delivery_info: [...] }
+        setDeliveries(dRes.data?.delivery_info ?? [])
       })
       .catch(() => toast.error('Failed to load order details.'))
       .finally(() => setLoading(false))
@@ -48,79 +54,74 @@ export default function OrderDetail() {
     return (
       <div className="text-center py-20 text-zinc-400">
         <p>Order not found.</p>
-        <Link to="/orders" className="btn-ghost mt-4 inline-block">Back to orders</Link>
+        <Link to="/orders" className="text-brand-400 hover:underline mt-4 inline-block">Back to orders</Link>
       </div>
     )
   }
 
-  const statusKey  = (order.status ?? '').toLowerCase().replace(/ /g, '_')
-  const stepIndex  = statusSteps.indexOf(statusKey)
+  const rawStatus  = order.status ?? ''
+  const statusKey  = rawStatus.toLowerCase().replace(/ /g, '_')
+  const stepIndex  = STATUS_STEPS.indexOf(statusKey)
   const isCancelled = statusKey === 'cancelled'
-  const total       = items.reduce((s, i) => s + (i.price ?? 0) * (i.quantity ?? 1), 0)
+  const colorCls   = STATUS_COLORS[statusKey] ?? 'text-zinc-400'
+
+  const total = items.reduce((s, i) => s + (i.price ?? 0) * (i.quantity ?? 1), 0)
 
   return (
-    <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-5">
       <Link to="/orders" className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
         <ArrowLeft size={16} /> Back to orders
       </Link>
 
       {/* Header */}
-      <div className="card p-6">
-        <div className="flex items-start justify-between mb-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="flex items-start justify-between mb-5">
           <div>
-            <h1 className="text-xl font-bold text-zinc-50">Order #{order.id ?? order.order_id}</h1>
+            <h1 className="text-xl font-bold text-zinc-50">Order #{order.order_id ?? order.id}</h1>
             {order.created_at && (
               <p className="text-sm text-zinc-500 mt-0.5 flex items-center gap-1">
-                <Clock size={12} />
-                {new Date(order.created_at).toLocaleString()}
+                <Clock size={12} /> {new Date(order.created_at).toLocaleString()}
               </p>
             )}
           </div>
-          <span className={`text-sm font-semibold ${statusColors[statusKey] ?? 'text-zinc-400'}`}>
-            {order.status ?? 'Unknown'}
-          </span>
+          <span className={`text-sm font-semibold ${colorCls}`}>{rawStatus || 'Unknown'}</span>
         </div>
 
-        {/* Progress bar */}
-        {!isCancelled && (
-          <div className="mb-4">
-            <div className="flex justify-between mb-1.5">
-              {statusSteps.map((s, i) => (
-                <div key={s} className="flex flex-col items-center gap-1 flex-1">
-                  <div
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      i <= stepIndex ? 'bg-brand-500' : 'bg-zinc-700'
-                    }`}
-                  />
-                  <span className={`text-[10px] text-center leading-tight ${i <= stepIndex ? 'text-brand-400' : 'text-zinc-600'}`}>
+        {/* Progress */}
+        {!isCancelled && stepIndex >= 0 && (
+          <div className="mb-5">
+            <div className="flex justify-between mb-3">
+              {STATUS_STEPS.map((s, i) => (
+                <div key={s} className="flex flex-col items-center gap-1.5 flex-1">
+                  <div className={`w-2.5 h-2.5 rounded-full transition-colors ${i <= stepIndex ? 'bg-brand-500' : 'bg-zinc-700'}`} />
+                  <span className={`text-[9px] text-center leading-tight ${i <= stepIndex ? 'text-brand-400' : 'text-zinc-600'}`}>
                     {s.replace('_', ' ')}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="h-1 bg-zinc-800 rounded-full mt-1 overflow-hidden">
+            <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-brand-500 transition-all duration-500"
-                style={{ width: `${((stepIndex + 1) / statusSteps.length) * 100}%` }}
+                className="h-full bg-brand-500 transition-all duration-500 rounded-full"
+                style={{ width: `${((stepIndex + 1) / STATUS_STEPS.length) * 100}%` }}
               />
             </div>
           </div>
         )}
 
         {order.delivery_address && (
-          <div className="flex items-start gap-2 text-sm text-zinc-400 mt-2">
-            <MapPin size={14} className="text-brand-400 mt-0.5 shrink-0" />
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <MapPin size={13} className="text-brand-400 shrink-0" />
             {order.delivery_address}
           </div>
         )}
       </div>
 
       {/* Items */}
-      <div className="card">
-        <div className="p-4 border-b border-zinc-800">
-          <h2 className="font-semibold text-zinc-100 flex items-center gap-2">
-            <Package size={16} className="text-brand-500" /> Items
-          </h2>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-zinc-800 flex items-center gap-2">
+          <Package size={15} className="text-brand-500" />
+          <h2 className="font-semibold text-zinc-100 text-sm">Order items</h2>
         </div>
         {items.length === 0 ? (
           <p className="p-6 text-zinc-500 text-sm text-center">No items found.</p>
@@ -129,36 +130,40 @@ export default function OrderDetail() {
             {items.map((item, i) => (
               <div key={i} className="flex items-center justify-between p-4 text-sm">
                 <div>
-                  <p className="text-zinc-100 font-medium">{item.name ?? `Item #${item.menu_item_id}`}</p>
-                  <p className="text-zinc-500 text-xs mt-0.5">₹{Number(item.price ?? 0).toFixed(2)} × {item.quantity}</p>
+                  <p className="text-zinc-100 font-medium">{item.name ?? `Item #${item.item_id ?? item.menu_id}`}</p>
+                  <p className="text-zinc-500 text-xs mt-0.5">
+                    ₹{Number(item.price ?? 0).toFixed(2)} × {item.quantity ?? 1}
+                  </p>
                 </div>
                 <span className="text-zinc-300 font-semibold">
-                  ₹{(Number(item.price ?? 0) * (item.quantity ?? 1)).toFixed(2)}
+                  ₹{(Number(item.price ?? 0) * Number(item.quantity ?? 1)).toFixed(2)}
                 </span>
               </div>
             ))}
-            <div className="flex items-center justify-between p-4 font-bold text-zinc-100">
-              <span>Total</span>
-              <span className="text-brand-400">₹{total.toFixed(2)}</span>
-            </div>
+            {total > 0 && (
+              <div className="flex items-center justify-between p-4 font-bold text-zinc-100 bg-zinc-800/40">
+                <span>Total</span>
+                <span className="text-brand-400">₹{total.toFixed(2)}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Delivery info */}
+      {/* Delivery updates */}
       {deliveries.length > 0 && (
-        <div className="card p-5 space-y-3">
-          <h2 className="font-semibold text-zinc-100 flex items-center gap-2">
-            <Truck size={16} className="text-brand-500" /> Delivery updates
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 space-y-4">
+          <h2 className="font-semibold text-zinc-100 text-sm flex items-center gap-2">
+            <Truck size={15} className="text-brand-500" /> Delivery updates
           </h2>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {deliveries.map((d, i) => (
               <div key={i} className="flex items-start gap-3 text-sm">
                 <div className="w-2 h-2 rounded-full bg-brand-500 mt-1.5 shrink-0" />
                 <div>
-                  <p className="text-zinc-200">{d.status}</p>
+                  <p className="text-zinc-200">{d.delivery_status ?? d.status}</p>
                   {d.updated_at && (
-                    <p className="text-zinc-600 text-xs">{new Date(d.updated_at).toLocaleString()}</p>
+                    <p className="text-zinc-600 text-xs mt-0.5">{new Date(d.updated_at).toLocaleString()}</p>
                   )}
                 </div>
               </div>

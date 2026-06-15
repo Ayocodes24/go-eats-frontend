@@ -5,23 +5,24 @@ import { getOrders } from '../api/index'
 import { PageSpinner } from '../components/Spinner'
 import { useToast } from '../context/ToastContext'
 
-const statusColors = {
-  pending:    'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
-  confirmed:  'bg-blue-500/10   text-blue-400   border-blue-500/20',
-  preparing:  'bg-purple-500/10 text-purple-400 border-purple-500/20',
-  out_for_delivery: 'bg-brand-500/10 text-brand-400 border-brand-500/20',
-  delivered:  'bg-green-500/10  text-green-400  border-green-500/20',
-  cancelled:  'bg-red-500/10    text-red-400    border-red-500/20',
+const STATUS_STYLES = {
+  pending:           'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  confirmed:         'bg-blue-500/10   text-blue-400   border-blue-500/20',
+  preparing:         'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  out_for_delivery:  'bg-brand-500/10  text-brand-400  border-brand-500/20',
+  delivered:         'bg-green-500/10  text-green-400  border-green-500/20',
+  cancelled:         'bg-red-500/10    text-red-400    border-red-500/20',
 }
 
 export default function Orders() {
-  const { toast }                = useToast()
-  const [orders,  setOrders]     = useState([])
-  const [loading, setLoading]    = useState(true)
+  const { toast }             = useToast()
+  const [orders,  setOrders]  = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Response: { orders: [...] }
     getOrders()
-      .then((r) => setOrders(r.data?.orders ?? r.data ?? []))
+      .then((r) => setOrders(r.data?.orders ?? []))
       .catch(() => toast.error('Could not load orders.'))
       .finally(() => setLoading(false))
   }, [])
@@ -35,32 +36,38 @@ export default function Orders() {
       </h1>
 
       {orders.length === 0 ? (
-        <div className="card p-12 text-center space-y-4">
-          <span className="text-5xl">📦</span>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-12 text-center space-y-4">
+          <span className="text-5xl block">📦</span>
           <p className="text-zinc-400">You haven't placed any orders yet.</p>
-          <Link to="/" className="btn-primary inline-block px-6 py-2.5">Start ordering</Link>
+          <Link
+            to="/"
+            className="inline-block px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors"
+          >
+            Start ordering
+          </Link>
         </div>
       ) : (
         <div className="space-y-3">
           {orders.map((order) => {
-            const statusKey = (order.status ?? '').toLowerCase().replace(/ /g, '_')
-            const colorCls  = statusColors[statusKey] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'
+            const orderId   = order.order_id ?? order.id
+            const rawStatus = order.status ?? ''
+            const statusKey = rawStatus.toLowerCase().replace(/ /g, '_')
+            const colorCls  = STATUS_STYLES[statusKey] ?? 'bg-zinc-800 text-zinc-400 border-zinc-700'
+
             return (
               <Link
-                key={order.id ?? order.order_id}
-                to={`/orders/${order.id ?? order.order_id}`}
-                className="card flex items-center gap-4 p-5 hover:border-zinc-600 transition-colors group"
+                key={orderId}
+                to={`/orders/${orderId}`}
+                className="flex items-center gap-4 p-5 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-zinc-600 transition-colors group"
               >
                 <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
                   <Package size={18} className="text-zinc-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-zinc-100 text-sm">
-                      Order #{order.id ?? order.order_id}
-                    </span>
+                    <span className="font-semibold text-zinc-100 text-sm">Order #{orderId}</span>
                     <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${colorCls}`}>
-                      {order.status ?? 'unknown'}
+                      {rawStatus || 'unknown'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-zinc-500">

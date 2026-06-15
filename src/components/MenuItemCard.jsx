@@ -1,23 +1,31 @@
 import { Plus, Minus, ShoppingCart } from 'lucide-react'
 
 export default function MenuItemCard({ item, onAdd, onRemove, quantity = 0 }) {
-  const { name, description, price, image_url } = item
+  // Backend fields: menu_id, name, description, photo, price, category, available
+  const { name, description, photo, price, category } = item
 
   return (
-    <div className="card flex gap-4 p-4 hover:border-zinc-600 transition-colors">
+    <div className="flex gap-4 p-4 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-zinc-700 transition-colors">
       {/* Image */}
       <div className="shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-zinc-800">
-        {image_url ? (
-          <img src={image_url} alt={name} className="w-full h-full object-cover" />
+        {photo ? (
+          <img src={photo} alt={name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl">🍴</div>
+          <div className="w-full h-full flex items-center justify-center text-2xl opacity-40">🍴</div>
         )}
       </div>
 
       {/* Details */}
       <div className="flex-1 min-w-0 flex flex-col justify-between gap-2">
         <div>
-          <h4 className="font-semibold text-zinc-100 text-sm leading-tight line-clamp-1">{name}</h4>
+          <div className="flex items-start gap-2">
+            <h4 className="font-semibold text-zinc-100 text-sm leading-tight line-clamp-1 flex-1">{name}</h4>
+            {category && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700 shrink-0">
+                {category}
+              </span>
+            )}
+          </div>
           {description && (
             <p className="text-xs text-zinc-500 mt-0.5 line-clamp-2">{description}</p>
           )}
@@ -42,7 +50,7 @@ export default function MenuItemCard({ item, onAdd, onRemove, quantity = 0 }) {
               >
                 <Minus size={12} />
               </button>
-              <span className="text-sm font-bold text-zinc-100 w-5 text-center">{quantity}</span>
+              <span className="text-sm font-bold text-zinc-100 w-4 text-center">{quantity}</span>
               <button
                 onClick={onAdd}
                 className="w-7 h-7 rounded-lg bg-brand-500 hover:bg-brand-600 flex items-center justify-center text-white transition-colors"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Search, UtensilsCrossed, Zap, Shield, Clock } from 'lucide-react'
 import { getRestaurants } from '../api/index'
 import RestaurantCard from '../components/RestaurantCard'
@@ -22,55 +22,67 @@ const FEATURES = [
   { icon: <Clock size={16} />, label: 'Track in real-time' },
 ]
 
+function parseCuisine(description = '') {
+  const match = description?.match(/^\[([^\]]+)\]/)
+  return match ? match[1] : null
+}
+
 export default function Home() {
   const [restaurants, setRestaurants] = useState([])
-  const [filtered,    setFiltered]    = useState([])
   const [query,       setQuery]       = useState('')
+  const [cuisine,     setCuisine]     = useState('')
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState('')
 
-  useEffect(() => {
+  const fetchRestaurants = () => {
+    setLoading(true)
+    setError('')
     getRestaurants()
-      .then((r) => {
-        const list = Array.isArray(r.data) ? r.data : []
-        setRestaurants(list)
-        setFiltered(list)
-      })
+      .then((r) => setRestaurants(Array.isArray(r.data) ? r.data : []))
       .catch((err) => {
-        // 404 "No restaurants found" = empty DB, not a server error
         if (err.response?.status === 404) {
           setRestaurants([])
-          setFiltered([])
         } else {
           setError('Cannot reach the server. Make sure the Go backend is running on :8080.')
         }
       })
       .finally(() => setLoading(false))
-  }, [])
+  }
 
-  useEffect(() => {
+  useEffect(() => { fetchRestaurants() }, [])
+
+  // Unique cuisines extracted from restaurants
+  const cuisines = useMemo(() => {
+    const set = new Set()
+    restaurants.forEach((r) => {
+      const c = parseCuisine(r.description)
+      if (c) set.add(c)
+    })
+    return Array.from(set).sort()
+  }, [restaurants])
+
+  const filtered = useMemo(() => {
     const q = query.toLowerCase()
-    setFiltered(
-      q
-        ? restaurants.filter(
-            (r) =>
-              r.name?.toLowerCase().includes(q) ||
-              r.city?.toLowerCase().includes(q) ||
-              r.state?.toLowerCase().includes(q) ||
-              r.description?.toLowerCase().includes(q)
-          )
-        : restaurants
-    )
-  }, [query, restaurants])
+    return restaurants.filter((r) => {
+      const matchesQuery = !q || (
+        r.name?.toLowerCase().includes(q) ||
+        r.city?.toLowerCase().includes(q) ||
+        r.state?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q)
+      )
+      const matchesCuisine = !cuisine || parseCuisine(r.description) === cuisine
+      return matchesQuery && matchesCuisine
+    })
+  }, [query, cuisine, restaurants])
 
   return (
     <main>
       {/* Hero */}
       <section className="relative overflow-hidden bg-zinc-950 border-b border-zinc-800/60">
-        {/* Background decoration */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-32 -right-32 w-96 h-96 bg-brand-500/8 rounded-full blur-3xl" />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-brand-600/6 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-brand-500/4 rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
@@ -79,7 +91,7 @@ export default function Home() {
             {FEATURES.map(({ icon, label }) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-full"
+                className="inline-flex items-center gap-1.5 bg-zinc-900/80 border border-zinc-800 text-zinc-400 text-xs font-medium px-3 py-1.5 rounded-full"
               >
                 <span className="text-brand-400">{icon}</span>
                 {label}
@@ -89,9 +101,12 @@ export default function Home() {
 
           <h1 className="text-center text-4xl sm:text-5xl lg:text-6xl font-extrabold text-zinc-50 tracking-tight mb-4">
             What are you{' '}
-            <span className="text-brand-500">hungry</span> for?
+            <span className="bg-gradient-to-r from-brand-400 to-brand-600 bg-clip-text text-transparent">
+              hungry
+            </span>{' '}
+            for?
           </h1>
-          <p className="text-center text-zinc-400 text-lg mb-10 max-w-lg mx-auto">
+          <p className="text-center text-zinc-400 text-lg mb-10 max-w-lg mx-auto leading-relaxed">
             Order from the best restaurants in your city, delivered hot and fresh.
           </p>
 
@@ -103,7 +118,7 @@ export default function Home() {
               placeholder="Search restaurants, cities…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-2xl pl-11 pr-4 py-4 text-base focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all"
+              className="w-full bg-zinc-900/80 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-2xl pl-11 pr-4 py-4 text-base focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all shadow-lg shadow-black/20"
             />
           </div>
         </div>
@@ -111,15 +126,44 @@ export default function Home() {
 
       {/* Restaurant grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
             <UtensilsCrossed size={18} className="text-brand-500" />
-            {query ? `Results for "${query}"` : 'All Restaurants'}
+            {query ? `Results for "${query}"` : cuisine ? cuisine : 'All Restaurants'}
           </h2>
           {!loading && !error && (
             <span className="text-sm text-zinc-500">{filtered.length} places</span>
           )}
         </div>
+
+        {/* Cuisine filter pills */}
+        {!loading && !error && cuisines.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-6">
+            <button
+              onClick={() => setCuisine('')}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+                !cuisine
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/30'
+                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-zinc-200'
+              }`}
+            >
+              All
+            </button>
+            {cuisines.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCuisine(cuisine === c ? '' : c)}
+                className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-all ${
+                  cuisine === c
+                    ? 'bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/30'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-zinc-200'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Loading skeletons */}
         {loading && (
@@ -139,14 +183,7 @@ export default function Home() {
               <p className="text-zinc-500 text-sm">{error}</p>
             </div>
             <button
-              onClick={() => {
-              setError('')
-              setLoading(true)
-              getRestaurants()
-                .then((r) => { const list = Array.isArray(r.data) ? r.data : []; setRestaurants(list); setFiltered(list) })
-                .catch((err) => { if (err.response?.status !== 404) setError('Cannot reach the server. Make sure the Go backend is running on :8080.') })
-                .finally(() => setLoading(false))
-            }}
+              onClick={fetchRestaurants}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-xl border border-zinc-700 transition-colors"
             >
               Try again
@@ -159,11 +196,14 @@ export default function Home() {
           <div className="text-center py-20 space-y-3">
             <span className="text-5xl">🍽️</span>
             <p className="text-zinc-400 font-medium">
-              {query ? 'No restaurants match your search.' : 'No restaurants yet.'}
+              {query || cuisine ? 'No restaurants match your filters.' : 'No restaurants yet — add some via Admin.'}
             </p>
-            {query && (
-              <button onClick={() => setQuery('')} className="text-brand-400 text-sm hover:underline">
-                Clear search
+            {(query || cuisine) && (
+              <button
+                onClick={() => { setQuery(''); setCuisine('') }}
+                className="text-brand-400 text-sm hover:underline"
+              >
+                Clear filters
               </button>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { ShoppingCart, Bell, LogOut, User, Truck, UtensilsCrossed, Menu, X } from 'lucide-react'
+import { ShoppingCart, Bell, LogOut, User, Truck, UtensilsCrossed, Menu, X, Shield } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { useWebSocket } from '../hooks/useWebSocket'
@@ -64,6 +64,7 @@ export default function Navbar() {
     { to: '/',        label: 'Restaurants' },
     { to: '/orders',  label: 'My Orders',   auth: true },
     { to: '/delivery', label: 'Delivery',   icon: <Truck size={14} /> },
+    { to: '/admin',   label: 'Admin',        icon: <Shield size={14} /> },
   ]
 
   return (

@@ -11,6 +11,7 @@ import Cart from './pages/Cart'
 import Orders from './pages/Orders'
 import OrderDetail from './pages/OrderDetail'
 import Delivery from './pages/Delivery'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/register"        element={<Register />} />
               <Route path="/restaurants/:id" element={<RestaurantDetail />} />
               <Route path="/delivery"        element={<Delivery />} />
+              <Route path="/admin"           element={<Admin />} />
 
               <Route path="/cart"            element={<ProtectedRoute><Cart /></ProtectedRoute>} />
               <Route path="/orders"          element={<ProtectedRoute><Orders /></ProtectedRoute>} />

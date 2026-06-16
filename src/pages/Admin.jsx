@@ -6,108 +6,110 @@ import {
   getMenus, addMenuItem, deleteMenuItem,
 } from '../api/index'
 import { useToast } from '../context/ToastContext'
-import { PageSpinner } from '../components/Spinner'
 
-// ─── Curated food images (reliable CDN, no API key needed) ──────────────────
+// ── AI-generated images via Pollinations.ai (seed-stable, no API key) ───────
+const P = (prompt, w, h, seed) =>
+  `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&seed=${seed}&nologo=true`
+
 const RESTAURANT_IMAGES = [
-  { label: 'Italian / Pizza', url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80' },
-  { label: 'American / Burgers', url: 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=800&q=80' },
-  { label: 'Japanese / Sushi', url: 'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=800&q=80' },
-  { label: 'Indian', url: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=80' },
-  { label: 'Fine Dining', url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80' },
-  { label: 'Mexican', url: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=800&q=80' },
-  { label: 'Chinese', url: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?w=800&q=80' },
-  { label: 'Cafe / Bakery', url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&q=80' },
+  { label: 'Italian / Pizza',   url: P('rustic italian pizzeria restaurant interior warm lighting brick wall candles', 800, 500, 101) },
+  { label: 'American / Burger', url: P('american burger diner retro neon signs vibrant food photography', 800, 500, 202) },
+  { label: 'Japanese / Sushi',  url: P('elegant japanese sushi bar minimalist interior dark wood zen', 800, 500, 303) },
+  { label: 'Indian Cuisine',    url: P('vibrant indian restaurant colorful spices warm amber lighting food', 800, 500, 404) },
+  { label: 'Fine Dining',       url: P('luxury fine dining restaurant elegant candlelight white tablecloth', 800, 500, 505) },
+  { label: 'Mexican',           url: P('colorful mexican restaurant festive papel picado tacos warm evening', 800, 500, 606) },
+  { label: 'Chinese',           url: P('chinese restaurant red lanterns dim sum traditional decor evening', 800, 500, 707) },
+  { label: 'Cafe / Bakery',     url: P('cozy cafe bakery interior warm light coffee pastries', 800, 500, 808) },
 ]
 
 const MENU_IMAGES = [
-  { label: 'Margherita Pizza', url: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&q=80' },
-  { label: 'Pepperoni Pizza', url: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80' },
-  { label: 'Burger', url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80' },
-  { label: 'Sushi Roll', url: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&q=80' },
-  { label: 'Biryani', url: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80' },
-  { label: 'Pasta', url: 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&q=80' },
-  { label: 'Tacos', url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&q=80' },
-  { label: 'Salad', url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80' },
-  { label: 'Garlic Bread', url: 'https://images.unsplash.com/photo-1619985813593-a7d08551e6f0?w=400&q=80' },
-  { label: 'Noodles', url: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=400&q=80' },
-  { label: 'Dessert', url: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80' },
-  { label: 'Sandwich', url: 'https://images.unsplash.com/photo-1481070414801-51fd732d7184?w=400&q=80' },
+  { label: 'Margherita Pizza',  url: P('margherita pizza fresh basil mozzarella tomato wood fired', 400, 300, 11) },
+  { label: 'Pepperoni Pizza',   url: P('pepperoni pizza cheesy crispy slice overhead', 400, 300, 12) },
+  { label: 'Cheeseburger',      url: P('gourmet cheeseburger brioche bun lettuce tomato close up', 400, 300, 21) },
+  { label: 'Chicken Burger',    url: P('crispy fried chicken burger sandwich sesame bun', 400, 300, 22) },
+  { label: 'Sushi Roll',        url: P('california roll sushi chopsticks wasabi ginger', 400, 300, 31) },
+  { label: 'Salmon Nigiri',     url: P('salmon nigiri sushi fresh fish rice close up', 400, 300, 32) },
+  { label: 'Chicken Biryani',   url: P('chicken biryani saffron basmati rice aromatic spices', 400, 300, 41) },
+  { label: 'Pasta Carbonara',   url: P('pasta carbonara creamy egg sauce parmesan pepper', 400, 300, 51) },
+  { label: 'Chicken Tacos',     url: P('chicken street tacos corn tortilla lime cilantro salsa', 400, 300, 61) },
+  { label: 'Garlic Bread',      url: P('garlic bread crispy butter herbs toasted', 400, 300, 71) },
+  { label: 'Chocolate Dessert', url: P('chocolate lava cake dessert warm cream berries', 400, 300, 81) },
+  { label: 'Mango Drink',       url: P('mango smoothie tropical drink fresh fruit glass', 400, 300, 91) },
 ]
 
 const CUISINES = ['Indian', 'Italian', 'American', 'Japanese', 'Mexican', 'Chinese', 'Thai', 'Mediterranean', 'Continental', 'Fast Food', 'Cafe']
 
-// ─── Mock seed data ──────────────────────────────────────────────────────────
+// ── Seed data (AI-generated images) ─────────────────────────────────────────
 const SEED_RESTAURANTS = [
   {
     name: 'Pizza Palace', city: 'Mumbai', state: 'Maharashtra', address: '12 Marine Drive',
     description: '[Italian] Authentic Neapolitan pizzas baked in a wood-fired oven',
-    image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
+    image_url: P('rustic italian pizzeria restaurant interior warm lighting brick wall', 800, 500, 101),
     menus: [
-      { name: 'Margherita Pizza', description: 'Fresh tomato, mozzarella, basil', price: 299, category: 'Pizza', photo: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&q=80' },
-      { name: 'Pepperoni Pizza', description: 'Loaded with spicy pepperoni slices', price: 399, category: 'Pizza', photo: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80' },
-      { name: 'Garlic Bread', description: 'Toasted bread with herb butter', price: 149, category: 'Sides', photo: 'https://images.unsplash.com/photo-1619985813593-a7d08551e6f0?w=400&q=80' },
-      { name: 'Tiramisu', description: 'Classic Italian coffee dessert', price: 199, category: 'Dessert', photo: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=400&q=80' },
+      { name: 'Margherita Pizza',   description: 'Fresh tomato, mozzarella, basil', price: 299, category: 'Pizza',   photo: P('margherita pizza fresh basil mozzarella tomato', 400, 300, 11) },
+      { name: 'Pepperoni Pizza',    description: 'Loaded with spicy pepperoni',      price: 399, category: 'Pizza',   photo: P('pepperoni pizza cheesy crispy overhead', 400, 300, 12) },
+      { name: 'Garlic Bread',       description: 'Toasted with herb butter',          price: 149, category: 'Sides',   photo: P('garlic bread crispy herb butter toasted', 400, 300, 71) },
+      { name: 'Tiramisu',           description: 'Classic Italian coffee dessert',    price: 199, category: 'Dessert', photo: P('tiramisu dessert coffee cream mascarpone', 400, 300, 82) },
     ],
   },
   {
     name: 'Burger Barn', city: 'New Delhi', state: 'Delhi', address: '45 Connaught Place',
     description: '[American] Smash burgers, hand-cut fries and thick milkshakes',
-    image_url: 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=800&q=80',
+    image_url: P('american burger diner retro neon signs vibrant colorful', 800, 500, 202),
     menus: [
-      { name: 'Classic Smash Burger', description: 'Double patty, American cheese, pickles', price: 299, category: 'Burgers', photo: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80' },
-      { name: 'Crispy Chicken Burger', description: 'Fried chicken, sriracha mayo, coleslaw', price: 279, category: 'Burgers', photo: 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&q=80' },
-      { name: 'Veggie Burger', description: 'Black bean patty, avocado, lettuce', price: 229, category: 'Burgers', photo: 'https://images.unsplash.com/photo-1520072959219-c595dc870360?w=400&q=80' },
-      { name: 'Loaded Fries', description: 'Crispy fries with cheese sauce and jalapeños', price: 149, category: 'Sides', photo: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=400&q=80' },
+      { name: 'Classic Smash Burger', description: 'Double patty, American cheese, pickles', price: 299, category: 'Burgers', photo: P('gourmet cheeseburger brioche bun lettuce tomato', 400, 300, 21) },
+      { name: 'Crispy Chicken Burger', description: 'Fried chicken, sriracha mayo',          price: 279, category: 'Burgers', photo: P('crispy fried chicken burger sesame bun', 400, 300, 22) },
+      { name: 'Veggie Burger',         description: 'Black bean patty, avocado, lettuce',    price: 229, category: 'Burgers', photo: P('vegetarian bean patty burger avocado green', 400, 300, 23) },
+      { name: 'Loaded Fries',          description: 'Crispy fries, cheese, jalapeños',       price: 149, category: 'Sides',   photo: P('loaded cheese fries jalapeños crispy golden', 400, 300, 24) },
     ],
   },
   {
     name: 'Sushi Station', city: 'Bangalore', state: 'Karnataka', address: '8 Indiranagar 100ft Rd',
-    description: '[Japanese] Fresh sushi, sashimi and ramen made by trained Japanese chefs',
-    image_url: 'https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=800&q=80',
+    description: '[Japanese] Fresh sushi, sashimi and ramen by trained Japanese chefs',
+    image_url: P('elegant japanese sushi bar minimalist dark wood zen interior', 800, 500, 303),
     menus: [
-      { name: 'California Roll (8 pcs)', description: 'Crab, avocado, cucumber', price: 449, category: 'Rolls', photo: 'https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&q=80' },
-      { name: 'Salmon Nigiri (2 pcs)', description: 'Fresh Atlantic salmon over vinegared rice', price: 349, category: 'Nigiri', photo: 'https://images.unsplash.com/photo-1617196034099-0b938caf7308?w=400&q=80' },
-      { name: 'Spicy Tuna Roll', description: 'Tuna, sriracha, scallions', price: 499, category: 'Rolls', photo: 'https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=400&q=80' },
-      { name: 'Miso Ramen', description: 'Rich miso broth, chashu pork, soft egg', price: 399, category: 'Ramen', photo: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&q=80' },
+      { name: 'California Roll',  description: 'Crab, avocado, cucumber',           price: 449, category: 'Rolls',  photo: P('california roll sushi chopsticks wasabi ginger', 400, 300, 31) },
+      { name: 'Salmon Nigiri',    description: 'Fresh Atlantic salmon, vinegar rice',price: 349, category: 'Nigiri', photo: P('salmon nigiri sushi fresh fish rice close up', 400, 300, 32) },
+      { name: 'Spicy Tuna Roll',  description: 'Tuna, sriracha, scallions',         price: 499, category: 'Rolls',  photo: P('spicy tuna roll sushi red chili sauce', 400, 300, 33) },
+      { name: 'Miso Ramen',       description: 'Rich broth, chashu pork, soft egg', price: 399, category: 'Ramen',  photo: P('miso ramen noodles chashu pork soft egg bowl', 400, 300, 34) },
     ],
   },
   {
     name: 'Biryani Blues', city: 'Hyderabad', state: 'Telangana', address: '3 Banjara Hills Road',
     description: '[Indian] Slow-cooked dum biryani recipes passed down for generations',
-    image_url: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=800&q=80',
+    image_url: P('vibrant indian restaurant colorful spices warm amber lighting', 800, 500, 404),
     menus: [
-      { name: 'Chicken Dum Biryani', description: 'Marinated chicken, aged basmati, saffron', price: 349, category: 'Biryani', photo: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&q=80' },
-      { name: 'Mutton Biryani', description: 'Tender mutton slow-cooked over 4 hours', price: 449, category: 'Biryani', photo: 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=400&q=80' },
-      { name: 'Veg Biryani', description: 'Seasonal vegetables, caramelised onions', price: 249, category: 'Biryani', photo: 'https://images.unsplash.com/photo-1645177628172-a94c1f96e6db?w=400&q=80' },
-      { name: 'Shahi Paneer', description: 'Cottage cheese in rich cashew gravy', price: 279, category: 'Curry', photo: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400&q=80' },
+      { name: 'Chicken Dum Biryani', description: 'Marinated chicken, aged basmati, saffron', price: 349, category: 'Biryani', photo: P('chicken biryani saffron basmati rice aromatic spices', 400, 300, 41) },
+      { name: 'Mutton Biryani',      description: 'Tender mutton slow-cooked 4 hours',        price: 449, category: 'Biryani', photo: P('mutton biryani slow cooked aromatic rice dum', 400, 300, 42) },
+      { name: 'Veg Biryani',         description: 'Seasonal vegetables, caramelised onions',   price: 249, category: 'Biryani', photo: P('vegetable biryani colorful vegetables rice', 400, 300, 43) },
+      { name: 'Shahi Paneer',        description: 'Cottage cheese in cashew gravy',            price: 279, category: 'Curry',   photo: P('shahi paneer creamy cashew curry indian food', 400, 300, 44) },
     ],
   },
   {
     name: 'Pasta Paradise', city: 'Chennai', state: 'Tamil Nadu', address: '67 Anna Nagar',
     description: '[Italian] Hand-made pasta with sauces simmered for hours',
-    image_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
+    image_url: P('mediterranean pasta trattoria tuscany cozy restaurant warm light', 800, 500, 505),
     menus: [
-      { name: 'Pasta Carbonara', description: 'Egg, pecorino, guanciale, black pepper', price: 349, category: 'Pasta', photo: 'https://images.unsplash.com/photo-1673442000800-17eb5f35e2a7?w=400&q=80' },
-      { name: 'Pasta Arrabbiata', description: 'Spicy tomato sauce, garlic, chilli', price: 299, category: 'Pasta', photo: 'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&q=80' },
-      { name: 'Mushroom Risotto', description: 'Arborio rice, porcini, parmesan', price: 379, category: 'Risotto', photo: 'https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=400&q=80' },
-      { name: 'Panna Cotta', description: 'Vanilla cream with berry coulis', price: 179, category: 'Dessert', photo: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80' },
+      { name: 'Pasta Carbonara',   description: 'Egg, pecorino, guanciale, black pepper',  price: 349, category: 'Pasta',   photo: P('pasta carbonara creamy egg sauce parmesan pepper', 400, 300, 51) },
+      { name: 'Pasta Arrabbiata',  description: 'Spicy tomato sauce, garlic, chilli',       price: 299, category: 'Pasta',   photo: P('pasta arrabbiata spicy tomato garlic chilli', 400, 300, 52) },
+      { name: 'Mushroom Risotto',  description: 'Arborio rice, porcini, parmesan',          price: 379, category: 'Risotto', photo: P('mushroom risotto porcini parmesan creamy', 400, 300, 53) },
+      { name: 'Panna Cotta',       description: 'Vanilla cream with berry coulis',          price: 179, category: 'Dessert', photo: P('panna cotta vanilla cream berry sauce dessert', 400, 300, 54) },
     ],
   },
   {
     name: 'Taco Town', city: 'Pune', state: 'Maharashtra', address: '22 Koregaon Park',
     description: '[Mexican] Street-style tacos, burritos and fresh guacamole',
-    image_url: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80',
+    image_url: P('colorful mexican restaurant festive papel picado tacos warm evening', 800, 500, 606),
     menus: [
-      { name: 'Chicken Tacos (3 pcs)', description: 'Grilled chicken, pico de gallo, lime crema', price: 279, category: 'Tacos', photo: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&q=80' },
-      { name: 'Beef Burrito', description: 'Slow-braised beef, rice, beans, guac', price: 349, category: 'Burritos', photo: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=400&q=80' },
-      { name: 'Loaded Nachos', description: 'Tortilla chips, cheese, jalapeños, salsa', price: 249, category: 'Snacks', photo: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=400&q=80' },
-      { name: 'Mango Margarita', description: 'Fresh mango, lime, mint cooler', price: 149, category: 'Drinks', photo: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80' },
+      { name: 'Chicken Tacos',  description: 'Grilled chicken, pico de gallo, lime crema', price: 279, category: 'Tacos',   photo: P('chicken street tacos corn tortilla lime cilantro salsa', 400, 300, 61) },
+      { name: 'Beef Burrito',   description: 'Slow-braised beef, rice, beans, guac',       price: 349, category: 'Burritos', photo: P('beef burrito wrapped mexican rice beans', 400, 300, 62) },
+      { name: 'Loaded Nachos',  description: 'Tortilla chips, cheese, jalapeños, salsa',   price: 249, category: 'Snacks',   photo: P('loaded nachos cheese jalapeños salsa crispy', 400, 300, 63) },
+      { name: 'Mango Agua Fresca', description: 'Fresh mango, lime, mint cooler',          price: 149, category: 'Drinks',   photo: P('mango tropical drink fresh fruit glass lime mint', 400, 300, 91) },
     ],
   },
 ]
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 function ImagePicker({ value, onChange, options, label }) {
   return (
     <div className="space-y-2">
@@ -118,14 +120,21 @@ function ImagePicker({ value, onChange, options, label }) {
             key={img.url}
             type="button"
             onClick={() => onChange(img.url)}
+            title={img.label}
             className={`relative rounded-xl overflow-hidden aspect-video border-2 transition-all ${
               value === img.url ? 'border-brand-500 ring-2 ring-brand-500/30' : 'border-zinc-700 hover:border-zinc-500'
             }`}
           >
-            <img src={img.url} alt={img.label} className="w-full h-full object-cover" />
+            <img
+              src={img.url}
+              alt={img.label}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => { e.target.style.display = 'none' }}
+            />
             {value === img.url && (
               <div className="absolute inset-0 bg-brand-500/20 flex items-center justify-center">
-                <span className="text-white text-lg">✓</span>
+                <span className="text-white text-base font-bold">✓</span>
               </div>
             )}
           </button>
@@ -134,9 +143,9 @@ function ImagePicker({ value, onChange, options, label }) {
       <input
         type="url"
         placeholder="Or paste a custom image URL…"
-        value={options.some(o => o.url === value) ? '' : value}
+        value={options.some(o => o.url === value) ? '' : (value || '')}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 transition-all"
+        className={inputCls}
       />
     </div>
   )
@@ -145,20 +154,19 @@ function ImagePicker({ value, onChange, options, label }) {
 function Field({ label, children }) {
   return (
     <div className="space-y-1">
-      <label className="text-xs font-medium text-zinc-400">{label}</label>
+      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">{label}</label>
       {children}
     </div>
   )
 }
 
-const inputCls = 'w-full bg-zinc-800 border border-zinc-700 text-zinc-100 placeholder-zinc-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-all'
+const inputCls = 'w-full bg-zinc-800/60 border border-zinc-700/80 text-zinc-100 placeholder-zinc-500 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/60 transition-all'
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 export default function Admin() {
   const { toast }   = useToast()
   const navigate    = useNavigate()
 
-  // Auth gate
   const [unlocked,  setUnlocked]  = useState(() => sessionStorage.getItem('admin_unlocked') === '1')
   const [adminPass, setAdminPass] = useState('')
 
@@ -169,13 +177,8 @@ export default function Admin() {
   const [loading,        setLoading]        = useState(false)
   const [seeding,        setSeeding]        = useState(false)
 
-  const [restForm, setRestForm] = useState({
-    name: '', description: '', address: '', city: '', state: '', image_url: '',
-    cuisine: '',
-  })
-  const [menuForm, setMenuForm] = useState({
-    name: '', description: '', price: '', category: '', photo: '', available: true,
-  })
+  const [restForm, setRestForm] = useState({ name: '', description: '', address: '', city: '', state: '', image_url: '', cuisine: '' })
+  const [menuForm, setMenuForm] = useState({ name: '', description: '', price: '', category: '', photo: '', available: true })
 
   const ADMIN_PASSWORD = 'admin@goeats'
 
@@ -201,29 +204,19 @@ export default function Admin() {
   useEffect(() => { if (unlocked) loadRestaurants() }, [unlocked, loadRestaurants])
   useEffect(() => { loadMenus(selectedRestId) }, [selectedRestId, loadMenus])
 
-  // ── Add restaurant ──────────────────────────────────────
   const handleAddRestaurant = async (e) => {
     e.preventDefault()
     if (!restForm.name.trim()) { toast.error('Name is required.'); return }
     setLoading(true)
     try {
-      const cuisine = restForm.cuisine ? `[${restForm.cuisine}] ` : ''
-      await addRestaurant({
-        name:        restForm.name,
-        description: `${cuisine}${restForm.description}`,
-        address:     restForm.address,
-        city:        restForm.city,
-        state:       restForm.state,
-        image_url:   restForm.image_url,
-      })
+      const prefix = restForm.cuisine ? `[${restForm.cuisine}] ` : ''
+      await addRestaurant({ name: restForm.name, description: `${prefix}${restForm.description}`, address: restForm.address, city: restForm.city, state: restForm.state, image_url: restForm.image_url })
       toast.success(`"${restForm.name}" added!`)
       setRestForm({ name: '', description: '', address: '', city: '', state: '', image_url: '', cuisine: '' })
       loadRestaurants()
     } catch (err) {
       toast.error(err.response?.data?.error ?? 'Failed to add restaurant.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const handleDeleteRestaurant = async (id, name) => {
@@ -232,35 +225,22 @@ export default function Admin() {
       toast.success(`"${name}" deleted.`)
       loadRestaurants()
       if (String(selectedRestId) === String(id)) { setSelectedRestId(''); setMenus([]) }
-    } catch {
-      toast.error('Delete failed.')
-    }
+    } catch { toast.error('Delete failed.') }
   }
 
-  // ── Add menu item ───────────────────────────────────────
   const handleAddMenuItem = async (e) => {
     e.preventDefault()
     if (!selectedRestId) { toast.error('Select a restaurant first.'); return }
     if (!menuForm.name.trim() || !menuForm.price) { toast.error('Name and price are required.'); return }
     setLoading(true)
     try {
-      await addMenuItem({
-        restaurant_id: parseInt(selectedRestId),
-        name:          menuForm.name,
-        description:   menuForm.description,
-        price:         parseFloat(menuForm.price),
-        category:      menuForm.category,
-        photo:         menuForm.photo,
-        available:     menuForm.available,
-      })
+      await addMenuItem({ restaurant_id: parseInt(selectedRestId), name: menuForm.name, description: menuForm.description, price: parseFloat(menuForm.price), category: menuForm.category, photo: menuForm.photo, available: menuForm.available })
       toast.success(`"${menuForm.name}" added!`)
       setMenuForm({ name: '', description: '', price: '', category: '', photo: '', available: true })
       loadMenus(selectedRestId)
     } catch (err) {
       toast.error(err.response?.data?.error ?? 'Failed to add menu item.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   const handleDeleteMenuItem = async (restaurantId, menuId, name) => {
@@ -268,53 +248,47 @@ export default function Admin() {
       await deleteMenuItem(restaurantId, menuId)
       toast.success(`"${name}" removed.`)
       loadMenus(selectedRestId)
-    } catch {
-      toast.error('Delete failed.')
-    }
+    } catch { toast.error('Delete failed.') }
   }
 
-  // ── Seed all mock data ──────────────────────────────────
-  const handleSeedAll = async () => {
+  // Delete all existing restaurants then seed fresh data
+  const handleResetAndSeed = async () => {
     setSeeding(true)
-    toast.info('Seeding data… this may take a moment.')
+    toast.info('Clearing old data and seeding fresh restaurants…')
     try {
+      const existing = await getRestaurants()
+      const all = Array.isArray(existing.data) ? existing.data : []
+      for (const r of all) await deleteRestaurant(r.restaurant_id).catch(() => {})
+
       for (const r of SEED_RESTAURANTS) {
-        const res = await addRestaurant({
-          name: r.name, description: r.description, address: r.address,
-          city: r.city, state: r.state, image_url: r.image_url,
-        })
-        // Find the newly created restaurant by refreshing the list
+        await addRestaurant({ name: r.name, description: r.description, address: r.address, city: r.city, state: r.state, image_url: r.image_url })
         const listRes = await getRestaurants()
-        const all     = Array.isArray(listRes.data) ? listRes.data : []
-        const created = [...all].reverse().find((x) => x.name === r.name)
+        const list    = Array.isArray(listRes.data) ? listRes.data : []
+        const created = [...list].reverse().find((x) => x.name === r.name)
         if (created) {
-          for (const m of r.menus) {
-            await addMenuItem({ restaurant_id: created.restaurant_id, ...m })
-          }
+          for (const m of r.menus) await addMenuItem({ restaurant_id: created.restaurant_id, ...m })
         }
       }
-      toast.success('All mock data seeded!')
+      toast.success(`Seeded ${SEED_RESTAURANTS.length} restaurants with menus!`)
       loadRestaurants()
     } catch (err) {
       toast.error('Seeding failed: ' + (err.response?.data?.error ?? err.message))
-    } finally {
-      setSeeding(false)
-    }
+    } finally { setSeeding(false) }
   }
 
-  // ─── Password gate ────────────────────────────────────────────────────────
+  // ── Password gate ─────────────────────────────────────────────────────────
   if (!unlocked) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-zinc-800 border border-zinc-700 rounded-2xl mb-4">
-              <Shield size={26} className="text-brand-500" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-brand-500/20 to-brand-600/10 border border-brand-500/20 rounded-2xl mb-5 shadow-xl shadow-brand-500/10">
+              <Shield size={28} className="text-brand-400" />
             </div>
-            <h1 className="text-xl font-bold text-zinc-50">Admin Access</h1>
-            <p className="text-zinc-500 text-sm mt-1">Enter the admin password to continue</p>
+            <h1 className="text-2xl font-bold text-zinc-50">Admin Panel</h1>
+            <p className="text-zinc-500 text-sm mt-2">Enter the admin password to manage restaurants</p>
           </div>
-          <form onSubmit={unlock} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <form onSubmit={unlock} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4 shadow-2xl">
             <input
               type="password"
               value={adminPass}
@@ -323,51 +297,51 @@ export default function Admin() {
               autoFocus
               className={inputCls}
             />
-            <button type="submit" className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-              Unlock
+            <button type="submit" className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-brand-500/20 text-sm">
+              Unlock Dashboard
             </button>
-            <p className="text-center text-xs text-zinc-600">Hint: admin@goeats</p>
+            <p className="text-center text-xs text-zinc-600 mt-1">Hint: admin@goeats</p>
           </form>
         </div>
       </div>
     )
   }
 
-  // ─── Admin Dashboard ─────────────────────────────────────────────────────
+  // ── Dashboard ─────────────────────────────────────────────────────────────
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-50 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-zinc-50 flex items-center gap-2.5">
             <Shield size={22} className="text-brand-500" /> Admin Dashboard
           </h1>
-          <p className="text-zinc-500 text-sm mt-1">{restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''} in DB</p>
+          <p className="text-zinc-500 text-sm mt-1">{restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''} in database</p>
         </div>
-        <button
-          onClick={handleSeedAll}
-          disabled={seeding}
-          className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm"
-        >
-          {seeding
-            ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            : <Zap size={16} />
-          }
-          {seeding ? 'Seeding…' : 'Seed Mock Data'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleResetAndSeed}
+            disabled={seeding}
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-all text-sm shadow-lg shadow-brand-500/20"
+          >
+            {seeding
+              ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              : <Zap size={15} />
+            }
+            {seeding ? 'Seeding…' : 'Reset & Seed Data'}
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-xl w-fit">
+      <div className="flex gap-1 p-1 bg-zinc-900/80 border border-zinc-800 rounded-xl w-fit">
         {[
-          { key: 'restaurants', icon: <Store size={15} />, label: 'Restaurants' },
-          { key: 'menus',       icon: <Utensils size={15} />, label: 'Menu Items' },
+          { key: 'restaurants', icon: <Store size={14} />, label: 'Restaurants' },
+          { key: 'menus',       icon: <Utensils size={14} />, label: 'Menu Items' },
         ].map(({ key, icon, label }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === key ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              tab === key ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
             }`}
           >
             {icon} {label}
@@ -375,88 +349,77 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* ─── RESTAURANTS TAB ─────────────────────────────── */}
+      {/* ── RESTAURANTS TAB ── */}
       {tab === 'restaurants' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Add form */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
             <h2 className="font-semibold text-zinc-100 text-sm flex items-center gap-2">
               <Plus size={15} className="text-brand-500" /> Add Restaurant
             </h2>
             <form onSubmit={handleAddRestaurant} className="space-y-3">
               <Field label="Name *">
-                <input value={restForm.name} onChange={(e) => setRestForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Pizza Palace" required className={inputCls} />
+                <input value={restForm.name} onChange={(e) => setRestForm(f => ({ ...f, name: e.target.value }))} placeholder="Pizza Palace" required className={inputCls} />
               </Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="City">
-                  <input value={restForm.city} onChange={(e) => setRestForm(f => ({ ...f, city: e.target.value }))}
-                    placeholder="Mumbai" className={inputCls} />
+                  <input value={restForm.city} onChange={(e) => setRestForm(f => ({ ...f, city: e.target.value }))} placeholder="Mumbai" className={inputCls} />
                 </Field>
                 <Field label="State">
-                  <input value={restForm.state} onChange={(e) => setRestForm(f => ({ ...f, state: e.target.value }))}
-                    placeholder="Maharashtra" className={inputCls} />
+                  <input value={restForm.state} onChange={(e) => setRestForm(f => ({ ...f, state: e.target.value }))} placeholder="Maharashtra" className={inputCls} />
                 </Field>
               </div>
               <Field label="Address">
-                <input value={restForm.address} onChange={(e) => setRestForm(f => ({ ...f, address: e.target.value }))}
-                  placeholder="12 Main St" className={inputCls} />
+                <input value={restForm.address} onChange={(e) => setRestForm(f => ({ ...f, address: e.target.value }))} placeholder="12 Main St" className={inputCls} />
               </Field>
               <Field label="Cuisine Type">
-                <select value={restForm.cuisine} onChange={(e) => setRestForm(f => ({ ...f, cuisine: e.target.value }))}
-                  className={inputCls}>
+                <select value={restForm.cuisine} onChange={(e) => setRestForm(f => ({ ...f, cuisine: e.target.value }))} className={inputCls}>
                   <option value="">Select cuisine…</option>
                   {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </Field>
               <Field label="Description">
-                <textarea value={restForm.description} onChange={(e) => setRestForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Brief description of the restaurant" rows={2} className={inputCls + ' resize-none'} />
+                <textarea value={restForm.description} onChange={(e) => setRestForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief description…" rows={2} className={inputCls + ' resize-none'} />
               </Field>
-              <ImagePicker
-                label="Restaurant Image"
-                value={restForm.image_url}
-                onChange={(url) => setRestForm(f => ({ ...f, image_url: url }))}
-                options={RESTAURANT_IMAGES}
-              />
-              {restForm.image_url && (
-                <img src={restForm.image_url} alt="preview" className="w-full h-32 object-cover rounded-xl border border-zinc-700" />
-              )}
-              <button type="submit" disabled={loading}
-                className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+              <ImagePicker label="Restaurant Image" value={restForm.image_url} onChange={(url) => setRestForm(f => ({ ...f, image_url: url }))} options={RESTAURANT_IMAGES} />
+              {restForm.image_url && <img src={restForm.image_url} alt="preview" className="w-full h-32 object-cover rounded-xl border border-zinc-700" onError={(e) => e.target.style.display='none'} />}
+              <button type="submit" disabled={loading} className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-brand-500/20">
                 {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={15} />}
                 Add Restaurant
               </button>
             </form>
           </div>
 
-          {/* Restaurant list */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-              <h2 className="font-semibold text-zinc-100 text-sm">Existing Restaurants</h2>
-              <button onClick={loadRestaurants} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+              <h2 className="font-semibold text-zinc-100 text-sm">Current Restaurants</h2>
+              <button onClick={loadRestaurants} className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-800">
                 <RefreshCw size={14} />
               </button>
             </div>
-            <div className="divide-y divide-zinc-800 max-h-[520px] overflow-y-auto">
+            <div className="divide-y divide-zinc-800/60 max-h-[520px] overflow-y-auto">
               {restaurants.length === 0 ? (
-                <p className="p-8 text-center text-zinc-500 text-sm">No restaurants yet. Add one or seed mock data.</p>
+                <div className="p-10 text-center">
+                  <p className="text-zinc-500 text-sm mb-3">No restaurants yet.</p>
+                  <button onClick={handleResetAndSeed} disabled={seeding} className="text-brand-400 text-xs hover:underline font-medium">
+                    Click "Reset & Seed Data" to add mock data →
+                  </button>
+                </div>
               ) : restaurants.map((r) => (
-                <div key={r.restaurant_id} className="flex items-center gap-3 p-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-800 shrink-0">
-                    {r.store_image
-                      ? <img src={r.store_image} alt={r.name} className="w-full h-full object-cover" />
-                      : <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🍽️</div>
+                <div key={r.restaurant_id} className="flex items-center gap-3 p-3 hover:bg-zinc-800/30 transition-colors">
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-800 shrink-0 border border-zinc-700/50">
+                    {r.store_image && (r.store_image.startsWith('http://') || r.store_image.startsWith('https://'))
+                      ? <img src={r.store_image} alt={r.name} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+                      : <div className="w-full h-full flex items-center justify-center text-lg opacity-20">🍽️</div>
                     }
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-zinc-100 text-sm truncate">{r.name}</p>
-                    <p className="text-xs text-zinc-500 truncate">{r.city}, {r.state}</p>
+                    <p className="text-xs text-zinc-500 truncate">{[r.city, r.state].filter(Boolean).join(', ')}</p>
                   </div>
-                  <span className="text-xs text-zinc-600 shrink-0">#{r.restaurant_id}</span>
+                  <span className="text-xs text-zinc-700 shrink-0 font-mono">#{r.restaurant_id}</span>
                   <button onClick={() => handleDeleteRestaurant(r.restaurant_id, r.name)}
-                    className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0">
-                    <Trash2 size={14} />
+                    className="p-2 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all shrink-0">
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ))}
@@ -465,23 +428,16 @@ export default function Admin() {
         </div>
       )}
 
-      {/* ─── MENU ITEMS TAB ──────────────────────────────── */}
+      {/* ── MENU ITEMS TAB ── */}
       {tab === 'menus' && (
         <div className="space-y-5">
-          {/* Restaurant selector */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+          <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-4">
             <Field label="Select Restaurant">
               <div className="relative">
-                <select
-                  value={selectedRestId}
-                  onChange={(e) => setSelectedRestId(e.target.value)}
-                  className={inputCls + ' appearance-none pr-10'}
-                >
+                <select value={selectedRestId} onChange={(e) => setSelectedRestId(e.target.value)} className={inputCls + ' appearance-none pr-10'}>
                   <option value="">Choose a restaurant…</option>
                   {restaurants.map((r) => (
-                    <option key={r.restaurant_id} value={r.restaurant_id}>
-                      #{r.restaurant_id} — {r.name} ({r.city})
-                    </option>
+                    <option key={r.restaurant_id} value={r.restaurant_id}>#{r.restaurant_id} — {r.name} ({r.city})</option>
                   ))}
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
@@ -491,80 +447,63 @@ export default function Admin() {
 
           {selectedRestId && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Add menu item form */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+              <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
                 <h2 className="font-semibold text-zinc-100 text-sm flex items-center gap-2">
                   <Plus size={15} className="text-brand-500" /> Add Menu Item
                 </h2>
                 <form onSubmit={handleAddMenuItem} className="space-y-3">
                   <Field label="Item Name *">
-                    <input value={menuForm.name} onChange={(e) => setMenuForm(f => ({ ...f, name: e.target.value }))}
-                      placeholder="Margherita Pizza" required className={inputCls} />
+                    <input value={menuForm.name} onChange={(e) => setMenuForm(f => ({ ...f, name: e.target.value }))} placeholder="Margherita Pizza" required className={inputCls} />
                   </Field>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Price (₹) *">
-                      <input type="number" step="0.01" min="0"
-                        value={menuForm.price} onChange={(e) => setMenuForm(f => ({ ...f, price: e.target.value }))}
-                        placeholder="299" required className={inputCls} />
+                      <input type="number" step="1" min="0" value={menuForm.price} onChange={(e) => setMenuForm(f => ({ ...f, price: e.target.value }))} placeholder="299" required className={inputCls} />
                     </Field>
                     <Field label="Category">
-                      <input value={menuForm.category} onChange={(e) => setMenuForm(f => ({ ...f, category: e.target.value }))}
-                        placeholder="Pizza" className={inputCls} />
+                      <input value={menuForm.category} onChange={(e) => setMenuForm(f => ({ ...f, category: e.target.value }))} placeholder="Pizza" className={inputCls} />
                     </Field>
                   </div>
                   <Field label="Description">
-                    <textarea value={menuForm.description} onChange={(e) => setMenuForm(f => ({ ...f, description: e.target.value }))}
-                      placeholder="Fresh tomato, mozzarella, basil" rows={2} className={inputCls + ' resize-none'} />
+                    <textarea value={menuForm.description} onChange={(e) => setMenuForm(f => ({ ...f, description: e.target.value }))} placeholder="Fresh tomato, mozzarella, basil" rows={2} className={inputCls + ' resize-none'} />
                   </Field>
-                  <ImagePicker
-                    label="Item Image"
-                    value={menuForm.photo}
-                    onChange={(url) => setMenuForm(f => ({ ...f, photo: url }))}
-                    options={MENU_IMAGES}
-                  />
-                  {menuForm.photo && (
-                    <img src={menuForm.photo} alt="preview" className="w-full h-28 object-cover rounded-xl border border-zinc-700" />
-                  )}
+                  <ImagePicker label="Item Photo" value={menuForm.photo} onChange={(url) => setMenuForm(f => ({ ...f, photo: url }))} options={MENU_IMAGES} />
+                  {menuForm.photo && <img src={menuForm.photo} alt="preview" className="w-full h-28 object-cover rounded-xl border border-zinc-700" onError={(e) => e.target.style.display='none'} />}
                   <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
-                    <input type="checkbox" checked={menuForm.available}
-                      onChange={(e) => setMenuForm(f => ({ ...f, available: e.target.checked }))}
-                      className="accent-brand-500" />
-                    Available
+                    <input type="checkbox" checked={menuForm.available} onChange={(e) => setMenuForm(f => ({ ...f, available: e.target.checked }))} className="accent-brand-500 rounded" />
+                    Available for ordering
                   </label>
-                  <button type="submit" disabled={loading || !selectedRestId}
-                    className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+                  <button type="submit" disabled={loading || !selectedRestId} className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-brand-500/20">
                     {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={15} />}
                     Add Item
                   </button>
                 </form>
               </div>
 
-              {/* Menu item list */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+              <div className="bg-zinc-900/80 border border-zinc-800 rounded-2xl overflow-hidden">
                 <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
                   <h2 className="font-semibold text-zinc-100 text-sm">Menu Items ({menus.length})</h2>
-                  <button onClick={() => loadMenus(selectedRestId)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                  <button onClick={() => loadMenus(selectedRestId)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg hover:bg-zinc-800 transition-all">
                     <RefreshCw size={14} />
                   </button>
                 </div>
-                <div className="divide-y divide-zinc-800 max-h-[520px] overflow-y-auto">
+                <div className="divide-y divide-zinc-800/60 max-h-[520px] overflow-y-auto">
                   {menus.length === 0 ? (
                     <p className="p-8 text-center text-zinc-500 text-sm">No items yet for this restaurant.</p>
                   ) : menus.map((m) => (
-                    <div key={m.menu_id} className="flex items-center gap-3 p-3">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-800 shrink-0">
-                        {m.photo
-                          ? <img src={m.photo} alt={m.name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center text-xl opacity-30">🍴</div>
+                    <div key={m.menu_id} className="flex items-center gap-3 p-3 hover:bg-zinc-800/30 transition-colors">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-800 shrink-0 border border-zinc-700/50">
+                        {m.photo && (m.photo.startsWith('http://') || m.photo.startsWith('https://'))
+                          ? <img src={m.photo} alt={m.name} className="w-full h-full object-cover" onError={(e) => e.target.style.display='none'} />
+                          : <div className="w-full h-full flex items-center justify-center text-lg opacity-20">🍴</div>
                         }
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-zinc-100 text-sm truncate">{m.name}</p>
-                        <p className="text-xs text-zinc-500">₹{Number(m.price).toFixed(2)} · {m.category}</p>
+                        <p className="text-xs text-zinc-500">₹{Number(m.price).toFixed(0)} · {m.category}</p>
                       </div>
                       <button onClick={() => handleDeleteMenuItem(m.restaurant_id, m.menu_id, m.name)}
-                        className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0">
-                        <Trash2 size={14} />
+                        className="p-2 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all shrink-0">
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   ))}

@@ -16,7 +16,6 @@ export default function Navbar() {
   const [announcement, setAnnouncement] = useState('')
   const [mobileOpen,   setMobileOpen]   = useState(false)
 
-  // Fetch cart count when user is logged in
   useEffect(() => {
     if (!user) { setCartCount(0); return }
     getCart()
@@ -24,13 +23,11 @@ export default function Navbar() {
       .catch(() => {})
   }, [user, location.pathname])
 
-  // WebSocket for real-time notifications
   useWebSocket(token, (msg) => {
     toast.info(msg)
     setNotifCount((n) => n + 1)
   })
 
-  // SSE for announcements (auth required)
   useEffect(() => {
     if (!token) return
     let ctrl = new AbortController()
@@ -61,43 +58,47 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { to: '/',        label: 'Restaurants' },
-    { to: '/orders',  label: 'My Orders',   auth: true },
-    { to: '/delivery', label: 'Delivery',   icon: <Truck size={14} /> },
-    { to: '/admin',   label: 'Admin',        icon: <Shield size={14} /> },
+    { to: '/',         label: 'Restaurants' },
+    { to: '/orders',   label: 'My Orders',  auth: true },
+    { to: '/delivery', label: 'Delivery',   icon: <Truck size={13} /> },
+    { to: '/admin',    label: 'Admin',      icon: <Shield size={13} /> },
   ]
+
+  const isActive = (to) => location.pathname === to
 
   return (
     <>
-      {/* Announcement strip */}
       {announcement && (
-        <div className="bg-brand-500/10 border-b border-brand-500/20 px-4 py-2 text-center text-sm text-brand-400 font-medium">
+        <div className="bg-gradient-to-r from-brand-600/20 via-brand-500/15 to-brand-600/20 border-b border-brand-500/20 px-4 py-2 text-center text-sm text-brand-300 font-medium">
           📢 {announcement}
         </div>
       )}
 
-      <header className="sticky top-0 z-40 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
+      <header className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 bg-brand-500 rounded-xl flex items-center justify-center group-hover:bg-brand-600 transition-colors">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+              <div className="w-9 h-9 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/30 group-hover:shadow-brand-500/50 transition-shadow">
                 <UtensilsCrossed size={18} className="text-white" />
               </div>
-              <span className="text-xl font-bold text-zinc-50 tracking-tight">
-                GO<span className="text-brand-500">·</span>Eats
+              <span className="text-[1.15rem] font-bold tracking-tight">
+                <span className="text-zinc-100">GO</span>
+                <span className="text-brand-400">·</span>
+                <span className="text-zinc-100">Eats</span>
               </span>
             </Link>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-0.5">
               {navLinks.map(({ to, label, auth, icon }) =>
                 (!auth || user) ? (
                   <Link
                     key={to}
                     to={to}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      location.pathname === to
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isActive(to)
                         ? 'bg-zinc-800 text-zinc-50'
                         : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
                     }`}
@@ -109,63 +110,58 @@ export default function Navbar() {
             </nav>
 
             {/* Right side */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {user ? (
                 <>
-                  {/* Notification bell */}
                   <button
-                    className="relative p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                    className="relative p-2.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
                     onClick={() => setNotifCount(0)}
-                    title="Notifications"
                   >
-                    <Bell size={20} />
+                    <Bell size={19} />
                     {notifCount > 0 && (
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                         {notifCount > 9 ? '9+' : notifCount}
                       </span>
                     )}
                   </button>
 
-                  {/* Cart */}
                   <Link
                     to="/cart"
-                    className="relative p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
+                    className="relative p-2.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
                   >
-                    <ShoppingCart size={20} />
+                    <ShoppingCart size={19} />
                     {cartCount > 0 && (
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-brand-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
                         {cartCount}
                       </span>
                     )}
                   </Link>
 
-                  {/* User info */}
-                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-800 rounded-lg">
-                    <div className="w-6 h-6 bg-brand-500/20 rounded-full flex items-center justify-center">
-                      <User size={14} className="text-brand-400" />
+                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-xl ml-1">
+                    <div className="w-6 h-6 bg-gradient-to-br from-brand-400/30 to-brand-600/20 rounded-full flex items-center justify-center border border-brand-500/20">
+                      <User size={13} className="text-brand-400" />
                     </div>
                     <span className="text-sm text-zinc-300 font-medium truncate max-w-[100px]">
                       {user.name || 'User'}
                     </span>
                   </div>
 
-                  <button onClick={handleLogout} className="btn-ghost p-2 rounded-lg" title="Logout">
-                    <LogOut size={18} />
+                  <button onClick={handleLogout} className="p-2.5 rounded-xl text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-all" title="Logout">
+                    <LogOut size={17} />
                   </button>
                 </>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Link to="/login"    className="btn-ghost text-sm">Login</Link>
+                  <Link to="/login"    className="text-sm font-medium text-zinc-400 hover:text-zinc-100 px-3 py-2 rounded-lg hover:bg-zinc-800 transition-all">Login</Link>
                   <Link to="/register" className="btn-primary text-sm py-2 px-4">Sign up</Link>
                 </div>
               )}
 
-              {/* Mobile menu toggle */}
               <button
-                className="md:hidden p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+                className="md:hidden p-2.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-all"
                 onClick={() => setMobileOpen(!mobileOpen)}
               >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+                {mobileOpen ? <X size={19} /> : <Menu size={19} />}
               </button>
             </div>
           </div>
@@ -173,16 +169,18 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-zinc-800 bg-zinc-950 px-4 py-3 space-y-1">
-            {navLinks.map(({ to, label, auth }) =>
+          <div className="md:hidden border-t border-zinc-800/60 bg-zinc-950/95 backdrop-blur-xl px-4 py-3 space-y-1">
+            {navLinks.map(({ to, label, auth, icon }) =>
               (!auth || user) ? (
                 <Link
                   key={to}
                   to={to}
                   onClick={() => setMobileOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm text-zinc-300 hover:text-zinc-100 hover:bg-zinc-800"
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                    isActive(to) ? 'bg-zinc-800 text-zinc-50' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
+                  }`}
                 >
-                  {label}
+                  {icon}{label}
                 </Link>
               ) : null
             )}

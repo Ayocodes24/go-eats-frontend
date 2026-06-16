@@ -18,10 +18,17 @@ export default function Cart() {
     setLoading(true)
     getCart()
       .then((r) => {
-        // Response: { items: [{cart_item_id, item_id, quantity, menu_item: {name, price, ...}}] }
+        // Response: { items: [{cart_item_id, item_id, quantity, menu_item: {name, price, photo, ...}}] }
         setItems(r.data?.items ?? [])
       })
-      .catch(() => toast.error('Could not load cart.'))
+      .catch((err) => {
+        // "no rows" = user has no cart yet, treat as empty
+        if (!err.response || err.response.status >= 500) {
+          setItems([])
+        } else {
+          toast.error('Could not load cart.')
+        }
+      })
       .finally(() => setLoading(false))
   }
 
@@ -40,9 +47,9 @@ export default function Cart() {
     if (!address.trim()) { toast.error('Please enter a delivery address.'); return }
     setPlacing(true)
     try {
-      // Backend only needs { delivery_address } — gets cart from JWT user
+      // Backend only needs { delivery_address } — no cart_id, gets cart from JWT
       await placeOrder(address.trim())
-      toast.success('Order placed successfully!')
+      toast.success('Order placed!')
       navigate('/orders')
     } catch (err) {
       toast.error(err.response?.data?.error ?? 'Failed to place order.')
@@ -53,10 +60,10 @@ export default function Cart() {
 
   if (loading) return <PageSpinner />
 
-  // Each item: { cart_item_id, item_id, quantity, menu_item: { name, price, ... } }
+  // item.price is the unit price from menu_item; total = sum of unit_price * quantity
   const total = items.reduce((sum, i) => {
     const price = i.menu_item?.price ?? 0
-    return sum + price * Number(i.quantity)
+    return sum + Number(price) * Number(i.quantity)
   }, 0)
 
   return (
@@ -78,22 +85,29 @@ export default function Cart() {
           {/* Item list */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl divide-y divide-zinc-800">
             {items.map((item) => {
-              const name  = item.menu_item?.name  ?? `Item #${item.item_id}`
-              const price = item.menu_item?.price ?? 0
+              // menu_item is lowercase json tag on CartItems.MenuItem field
+              const mi    = item.menu_item
+              const name  = mi?.name  ?? `Item #${item.item_id}`
+              const price = mi?.price ?? 0
+              const photo = mi?.photo
+
               return (
                 <div key={item.cart_item_id} className="flex items-center gap-4 p-4">
+                  {photo && (
+                    <img src={photo} alt={name} className="w-12 h-12 rounded-xl object-cover bg-zinc-800 shrink-0" />
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-zinc-100 text-sm">{name}</p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       ₹{Number(price).toFixed(2)} × {item.quantity}
                     </p>
                   </div>
-                  <span className="text-sm font-semibold text-zinc-200">
+                  <span className="text-sm font-semibold text-zinc-200 mr-2">
                     ₹{(Number(price) * Number(item.quantity)).toFixed(2)}
                   </span>
                   <button
                     onClick={() => handleRemove(item.cart_item_id)}
-                    className="p-1.5 text-zinc-600 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10"
+                    className="p-1.5 text-zinc-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -102,17 +116,16 @@ export default function Cart() {
             })}
           </div>
 
-          {/* Checkout */}
+          {/* Summary + checkout */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5">
-            <div className="flex justify-between items-center text-lg font-bold text-zinc-100 border-t border-zinc-800 pt-4 first:border-t-0 first:pt-0">
+            <div className="flex justify-between items-center text-lg font-bold text-zinc-100">
               <span>Total</span>
               <span className="text-brand-400">₹{total.toFixed(2)}</span>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-zinc-300 flex items-center gap-1.5">
-                <MapPin size={14} className="text-brand-400" />
-                Delivery address
+                <MapPin size={14} className="text-brand-400" /> Delivery address
               </label>
               <input
                 type="text"
@@ -128,11 +141,10 @@ export default function Cart() {
               disabled={placing || !address.trim()}
               className="w-full py-3.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 text-base"
             >
-              {placing ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <ArrowRight size={18} />
-              )}
+              {placing
+                ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <ArrowRight size={18} />
+              }
               {placing ? 'Placing order…' : 'Place order'}
             </button>
           </div>

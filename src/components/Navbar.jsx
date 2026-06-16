@@ -36,7 +36,7 @@ export default function Navbar() {
     let ctrl = new AbortController()
     ;(async () => {
       try {
-        const res = await fetch('/api/announcements/flash', {
+        const res = await fetch('/api/announcements/events', {
           headers: { Authorization: `Bearer ${token}` },
           signal: ctrl.signal,
         })

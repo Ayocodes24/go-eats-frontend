@@ -34,17 +34,23 @@ export default function RestaurantDetail() {
 
   const refreshCart = useCallback(() => {
     if (!user) return
-    getCart().then((r) => {
-      const items = r.data?.items ?? []
-      const qtyMap  = {}
-      const idMap   = {}
-      items.forEach((i) => {
-        qtyMap[i.item_id]  = (qtyMap[i.item_id] ?? 0) + Number(i.quantity)
-        idMap[i.item_id]   = i.cart_item_id  // for removal
+    getCart()
+      .then((r) => {
+        const items = r.data?.items ?? []
+        const qtyMap = {}
+        const idMap  = {}
+        items.forEach((i) => {
+          qtyMap[i.item_id] = (qtyMap[i.item_id] ?? 0) + Number(i.quantity)
+          idMap[i.item_id]  = i.cart_item_id
+        })
+        setCartQty(qtyMap)
+        setCartItemIds(idMap)
       })
-      setCartQty(qtyMap)
-      setCartItemIds(idMap)
-    }).catch(() => {})
+      .catch(() => {
+        // 500 "no rows" means user has no cart yet — start with empty
+        setCartQty({})
+        setCartItemIds({})
+      })
   }, [user])
 
   useEffect(() => { refreshCart() }, [refreshCart])

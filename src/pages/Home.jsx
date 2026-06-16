@@ -32,12 +32,19 @@ export default function Home() {
   useEffect(() => {
     getRestaurants()
       .then((r) => {
-        // Backend returns a raw array directly
-        const list = Array.isArray(r.data) ? r.data : (r.data?.restaurants ?? [])
+        const list = Array.isArray(r.data) ? r.data : []
         setRestaurants(list)
         setFiltered(list)
       })
-      .catch(() => setError('Backend is not running. Start the Go server on :8080.'))
+      .catch((err) => {
+        // 404 "No restaurants found" = empty DB, not a server error
+        if (err.response?.status === 404) {
+          setRestaurants([])
+          setFiltered([])
+        } else {
+          setError('Cannot reach the server. Make sure the Go backend is running on :8080.')
+        }
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -132,7 +139,14 @@ export default function Home() {
               <p className="text-zinc-500 text-sm">{error}</p>
             </div>
             <button
-              onClick={() => { setError(''); setLoading(true); getRestaurants().then((r) => { const list = Array.isArray(r.data) ? r.data : []; setRestaurants(list); setFiltered(list); }).catch(() => setError('Backend is not running. Start the Go server on :8080.')).finally(() => setLoading(false)) }}
+              onClick={() => {
+              setError('')
+              setLoading(true)
+              getRestaurants()
+                .then((r) => { const list = Array.isArray(r.data) ? r.data : []; setRestaurants(list); setFiltered(list) })
+                .catch((err) => { if (err.response?.status !== 404) setError('Cannot reach the server. Make sure the Go backend is running on :8080.') })
+                .finally(() => setLoading(false))
+            }}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-xl border border-zinc-700 transition-colors"
             >
               Try again
